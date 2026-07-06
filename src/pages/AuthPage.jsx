@@ -43,7 +43,6 @@ export default function AuthPage({ isMock, setCurrentPage }) {
         // 註冊
         const credential = await createUserWithEmailAndPassword(activeAuth, formattedEmail, password);
         const user = credential.user;
-        
         // 初始化使用者在資料庫中的 Profile
         await setDoc(doc(activeDb, 'users', user.uid), {
           uid: user.uid,
@@ -51,6 +50,7 @@ export default function AuthPage({ isMock, setCurrentPage }) {
           coins: 0,        // 註冊送 0 金幣
           hints: 3,        // 註冊送 3 提示
           avatar: selectedAvatar, // 可愛動物頭像
+          isAdmin: cleanUsername === 'admin', // 🌟 若帳號為 admin 則自動取得管理權限
           completedLevels: {},
           createdAt: new Date().toISOString()
         }, { merge: true });
