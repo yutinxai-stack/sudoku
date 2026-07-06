@@ -6,6 +6,7 @@
       "**/.*",
       "**/node_modules/**"
     ],
+    "releaseLimit": 2,
     "headers": [
       {
         "source": "/**",
