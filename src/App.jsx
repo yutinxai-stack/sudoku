@@ -90,6 +90,11 @@ export default function App() {
     }
   };
 
+  // 本地樂觀更新頭像，提升即時反應體驗
+  const handleUpdateAvatarLocal = (newAvatar) => {
+    setUserData(prev => prev ? { ...prev, avatar: newAvatar } : { avatar: newAvatar });
+  };
+
   const handleSelectLevel = (level) => {
     setSelectedLevel(level);
     setCurrentPage('game');
@@ -108,6 +113,7 @@ export default function App() {
         setCurrentPage={setCurrentPage}
         currentPage={currentPage}
         onRefreshUserData={handleRefreshUserData}
+        onUpdateAvatarLocal={handleUpdateAvatarLocal}
       />
 
       {/* 主畫面切換 */}

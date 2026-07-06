@@ -13,7 +13,8 @@ export default function AccessibilityBar({
   userData,
   setCurrentPage,
   currentPage,
-  onRefreshUserData
+  onRefreshUserData,
+  onUpdateAvatarLocal
 }) {
   const [showPicker, setShowPicker] = useState(false);
 
@@ -28,13 +29,20 @@ export default function AccessibilityBar({
 
   const handleSelectAvatar = async (newAvatar) => {
     if (!user) return;
+    
+    // 1. 立即更新本地 React state 頭像，讓長者看見一秒變換
+    if (onUpdateAvatarLocal) {
+      onUpdateAvatarLocal(newAvatar);
+    }
+    setShowPicker(false);
+
+    // 2. 背景靜默更新雲端
     try {
       const userRef = doc(activeDb, 'users', user.uid);
       await updateDoc(userRef, { avatar: newAvatar });
-      setShowPicker(false);
       if (onRefreshUserData) onRefreshUserData();
     } catch (e) {
-      console.error('更新頭像失敗:', e);
+      console.warn('雲端更新頭像失敗 (可能未啟用 Firestore)，已套用本地更新效果。', e);
     }
   };
 
