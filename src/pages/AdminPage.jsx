@@ -6,6 +6,12 @@ import { verifyAndSolve, stringToGrid, gridToString } from '../utils/sudokuSolve
 export default function AdminPage({ onBack }) {
   const [levels, setLevels] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // 新增標籤頁與挑戰者列表狀態
+  const [activeAdminTab, setActiveAdminTab] = useState('levels'); // 'levels' 或 'users'
+  const [usersList, setUsersList] = useState([]);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [usersError, setUsersError] = useState(null);
   
   // 新增/修改彈出視窗狀態
   const [showModal, setShowModal] = useState(false);
@@ -17,30 +23,60 @@ export default function AdminPage({ onBack }) {
   // 驗證狀態
   const [verificationResult, setVerificationResult] = useState({ tested: false, valid: false, message: '', solution: '' });
   const [selectedCell, setSelectedCell] = useState(null);
-
-  // 載入所有關卡
+ 
+  // 載入所有資料
   useEffect(() => {
-    fetchLevels();
-  }, []);
+    if (activeAdminTab === 'levels') {
+      fetchLevels();
+    } else {
+      fetchUsers();
+    }
+  }, [activeAdminTab]);
 
   async function fetchLevels() {
     try {
       setLoading(true);
-      const querySnapshot = await getDocs(collection(activeDb, 'levels'));
-      const loadedLevels = [];
-      querySnapshot.forEach((doc) => {
-        loadedLevels.push({ id: doc.id, ...doc.data() });
-      });
+      const res = await fetch('/data/data.txt');
+      if (!res.ok) {
+        throw new Error('無法取得靜態關卡資料');
+      }
+      const loadedLevels = await res.json();
       // 依關卡序號排序
       loadedLevels.sort((a, b) => a.number - b.number);
       setLevels(loadedLevels);
-      
-      // 自動推算部分在開啟 Modal 與切換難度時動態計算，此處免全局推算
     } catch (e) {
       console.error(e);
       alert('載入關卡失敗');
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function fetchUsers() {
+    try {
+      setUsersLoading(true);
+      setUsersError(null);
+      let loadedUsers = [];
+      try {
+        // 嘗試向雲端 Firestore 讀取 users 集合
+        const querySnapshot = await getDocs(collection(activeDb, 'users'));
+        querySnapshot.forEach((doc) => {
+          loadedUsers.push({ uid: doc.id, ...doc.data() });
+        });
+      } catch (err) {
+        console.warn('雲端載入挑戰者失敗，嘗試載入本地:', err);
+        // Fallback 載入本地 LocalStorage 進行測試展示
+        const localUsers = JSON.parse(localStorage.getItem('sudoku_users') || '{}');
+        loadedUsers = Object.values(localUsers);
+        setUsersError('offline');
+      }
+      // 依金幣多寡排序
+      loadedUsers.sort((a, b) => (b.coins || 0) - (a.coins || 0));
+      setUsersList(loadedUsers);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setUsersLoading(false);
     }
   }
 
@@ -196,71 +232,166 @@ export default function AdminPage({ onBack }) {
   return (
     <div className="container">
       {/* 頂部導航 */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
         <button className="btn btn-secondary" onClick={onBack} style={{ display: 'flex', gap: '0.25rem', fontSize: '1.2rem', padding: '0.5rem 1rem' }}>
           <ArrowLeft size={24} /> 返回大廳
         </button>
-        <h2 style={{ fontSize: '1.8rem' }}>🛠️ 數獨關卡後台管理</h2>
-        <button className="btn btn-primary" onClick={handleOpenAdd} style={{ display: 'flex', gap: '0.25rem', fontSize: '1.2rem', padding: '0.5rem 1.2rem' }}>
-          <Plus size={22} /> 新增關卡
+        <h2 style={{ fontSize: '1.8rem', margin: 0 }}>🛠️ 數獨管理後台</h2>
+        {activeAdminTab === 'levels' ? (
+          <button className="btn btn-primary" onClick={handleOpenAdd} style={{ display: 'flex', gap: '0.25rem', fontSize: '1.2rem', padding: '0.5rem 1.2rem' }}>
+            <Plus size={22} /> 新增關卡
+          </button>
+        ) : (
+          <button className="btn btn-primary" onClick={fetchUsers} style={{ display: 'flex', gap: '0.25rem', fontSize: '1.2rem', padding: '0.5rem 1.2rem' }}>
+            <RefreshCw size={18} /> 重新整理
+          </button>
+        )}
+      </div>
+
+      {/* 後台標籤切換列 */}
+      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
+        <button
+          className={`acc-btn ${activeAdminTab === 'levels' ? 'active' : ''}`}
+          onClick={() => setActiveAdminTab('levels')}
+          style={{ flex: 1, fontSize: '1.3rem', padding: '0.8rem 0' }}
+        >
+          🎮 關卡清單 ({levels.length})
+        </button>
+        <button
+          className={`acc-btn ${activeAdminTab === 'users' ? 'active' : ''}`}
+          onClick={() => setActiveAdminTab('users')}
+          style={{ flex: 1, fontSize: '1.3rem', padding: '0.8rem 0' }}
+        >
+          👥 挑戰者排行與金幣 ({usersList.length})
         </button>
       </div>
 
-      {/* 關卡清單列表 */}
-      <div className="card" style={{ padding: '1.5rem' }}>
-        {loading ? (
-          <div style={{ textAlign: 'center', fontSize: '1.3rem', padding: '2rem' }}>載入關卡列表中...</div>
-        ) : levels.length === 0 ? (
-          <div style={{ textAlign: 'center', fontSize: '1.3rem', padding: '3rem', color: 'var(--text-muted)' }}>
-            目前尚無任何關卡。請點擊右上角「新增關卡」！
-          </div>
-        ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '1.2rem', textAlign: 'left' }}>
-              <thead>
-                <tr style={{ borderBottom: '3px solid var(--grid-line-bold)', height: '3.5rem' }}>
-                  <th style={{ padding: '0.5rem' }}>關卡序號</th>
-                  <th style={{ padding: '0.5rem' }}>難度</th>
-                  <th style={{ padding: '0.5rem' }}>已知提示數</th>
-                  <th style={{ padding: '0.5rem', textAlign: 'right' }}>操作</th>
-                </tr>
-              </thead>
-              <tbody>
-                {levels.map((lvl) => {
-                  const cluesCount = lvl.board.split('').filter(c => c !== '0').length;
-                  return (
-                    <tr key={lvl.id} style={{ borderBottom: '2px solid var(--border)', height: '4rem' }}>
-                      <td style={{ padding: '0.5rem', fontWeight: 'bold' }}>第 {lvl.number} 關</td>
-                      <td style={{ padding: '0.5rem' }}>
-                        <span className={`level-badge badge-${lvl.difficulty}`} style={{ margin: 0 }}>
-                          {lvl.difficulty === 'easy' ? '簡單' : lvl.difficulty === 'medium' ? '困難' : lvl.difficulty === 'hard' ? '高手' : '專家'}
-                        </span>
-                      </td>
-                      <td style={{ padding: '0.5rem' }}>{cluesCount} / 81</td>
-                      <td style={{ padding: '0.5rem', textAlign: 'right' }}>
-                        <button 
-                          className="btn btn-secondary" 
-                          onClick={() => handleOpenEdit(lvl)}
-                          style={{ marginRight: '0.5rem', padding: '0.4rem 0.8rem', minHeight: '2.5rem', minWidth: '2.5rem' }}
-                        >
-                          <Edit size={16} /> 編輯
-                        </button>
-                        <button 
-                          className="btn btn-danger" 
-                          onClick={() => handleDelete(lvl.id)}
-                          style={{ padding: '0.4rem 0.8rem', minHeight: '2.5rem', minWidth: '2.5rem' }}
-                        >
-                          <Trash2 size={16} /> 刪除
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      {/* 關卡清單內容 */}
+      {activeAdminTab === 'levels' && (
+        <div className="card" style={{ padding: '1.5rem' }}>
+          {loading ? (
+            <div style={{ textAlign: 'center', fontSize: '1.3rem', padding: '2rem' }}>載入關卡列表中...</div>
+          ) : levels.length === 0 ? (
+            <div style={{ textAlign: 'center', fontSize: '1.3rem', padding: '3rem', color: 'var(--text-muted)' }}>
+              目前尚無任何關卡。請點擊右上角「新增關卡」！
+            </div>
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '1.2rem', textAlign: 'left' }}>
+                <thead>
+                  <tr style={{ borderBottom: '3px solid var(--grid-line-bold)', height: '3.5rem' }}>
+                    <th style={{ padding: '0.5rem' }}>關卡序號</th>
+                    <th style={{ padding: '0.5rem' }}>難度</th>
+                    <th style={{ padding: '0.5rem' }}>已知提示數</th>
+                    <th style={{ padding: '0.5rem', textAlign: 'right' }}>操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {levels.map((lvl) => {
+                    const cluesCount = lvl.board.split('').filter(c => c !== '0').length;
+                    return (
+                      <tr key={lvl.id} style={{ borderBottom: '2px solid var(--border)', height: '4rem' }}>
+                        <td style={{ padding: '0.5rem', fontWeight: 'bold' }}>第 {lvl.number} 關</td>
+                        <td style={{ padding: '0.5rem' }}>
+                          <span className={`level-badge badge-${lvl.difficulty}`} style={{ margin: 0 }}>
+                            {lvl.difficulty === 'easy' ? '簡單' : lvl.difficulty === 'medium' ? '困難' : lvl.difficulty === 'hard' ? '高手' : '專家'}
+                          </span>
+                        </td>
+                        <td style={{ padding: '0.5rem' }}>{cluesCount} / 81</td>
+                        <td style={{ padding: '0.5rem', textAlign: 'right' }}>
+                          <button 
+                            className="btn btn-secondary" 
+                            onClick={() => handleOpenEdit(lvl)}
+                            style={{ marginRight: '0.5rem', padding: '0.4rem 0.8rem', minHeight: '2.5rem', minWidth: '2.5rem' }}
+                          >
+                            ✏️ 編輯
+                          </button>
+                          <button 
+                            className="btn btn-danger" 
+                            onClick={() => handleDelete(lvl.id)}
+                            style={{ padding: '0.4rem 0.8rem', minHeight: '2.5rem', minWidth: '2.5rem' }}
+                          >
+                            🗑️ 刪除
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 挑戰者列表內容 */}
+      {activeAdminTab === 'users' && (
+        <div className="card" style={{ padding: '1.5rem' }}>
+          {usersError === 'offline' && (
+            <div style={{ 
+              padding: '1rem', 
+              borderRadius: '0.5rem', 
+              backgroundColor: '#fee2e2', 
+              color: '#b91c1c', 
+              marginBottom: '1rem',
+              fontSize: '1.1rem',
+              lineHeight: '1.5',
+              border: '1px solid #fca5a5'
+            }}>
+              ⚠️ <strong>雲端資料庫尚未啟用</strong>，目前顯示的是「本機離線挑戰者」存檔。<br />
+              一旦您在 Firebase 控制台點選「建立資料庫」啟用 Firestore 後，雲端玩家資料與排行即會自動對接！
+            </div>
+          )}
+          
+          {usersLoading ? (
+            <div style={{ textAlign: 'center', fontSize: '1.3rem', padding: '2rem' }}>載入挑戰者排行中...</div>
+          ) : usersList.length === 0 ? (
+            <div style={{ textAlign: 'center', fontSize: '1.3rem', padding: '3rem', color: 'var(--text-muted)' }}>
+              目前尚無任何挑戰者紀錄。
+            </div>
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '1.2rem', textAlign: 'left' }}>
+                <thead>
+                  <tr style={{ borderBottom: '3px solid var(--grid-line-bold)', height: '3.5rem' }}>
+                    <th style={{ padding: '0.5rem', width: '4rem' }}>排名</th>
+                    <th style={{ padding: '0.5rem' }}>玩家帳號</th>
+                    <th style={{ padding: '0.5rem' }}>擁有金幣 🪙</th>
+                    <th style={{ padding: '0.5rem' }}>擁有提示 💡</th>
+                    <th style={{ padding: '0.5rem' }}>已通關數</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {usersList.map((usr, idx) => {
+                    const completedCount = Object.keys(usr.completedLevels || {}).filter(k => usr.completedLevels[k].completed).length;
+                    return (
+                      <tr key={usr.uid} style={{ borderBottom: '2px solid var(--border)', height: '4rem' }}>
+                        <td style={{ padding: '0.5rem', fontWeight: 'bold' }}>
+                          {idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `${idx + 1}`}
+                        </td>
+                        <td style={{ padding: '0.5rem', fontWeight: 'bold' }}>
+                          <span style={{ marginRight: '0.5rem', fontSize: '1.4rem' }}>{usr.avatar || '👴'}</span>
+                          {usr.email?.split('@')[0]}
+                          {usr.isAdmin && <span style={{ fontSize: '0.8rem', padding: '0.1rem 0.3rem', background: '#ccc', borderRadius: '4px', marginLeft: '0.5rem', color: '#333' }}>管理員</span>}
+                        </td>
+                        <td style={{ padding: '0.5rem', fontWeight: 'bold', color: 'var(--text-coins)' }}>
+                          {usr.coins || 0} 🪙
+                        </td>
+                        <td style={{ padding: '0.5rem', fontWeight: 'bold', color: 'var(--text-hints)' }}>
+                          {usr.hints || 0} 💡
+                        </td>
+                        <td style={{ padding: '0.5rem' }}>
+                          {completedCount} 個關卡
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* 新增/編輯 Modal 視窗 */}
       {showModal && (
