@@ -8,7 +8,8 @@ export default function GamePage({
   userData, 
   level, 
   onBack, 
-  onRefreshUserData 
+  onRefreshUserData,
+  onUpdateUserDataLocal
 }) {
   const [board, setBoard] = useState(Array(81).fill(0));
   const [initialBoard, setInitialBoard] = useState(Array(81).fill(0));
@@ -151,48 +152,61 @@ export default function GamePage({
 
   // 發放獎勵
   const awardPlayer = async () => {
-    try {
-      const isAlreadyCompleted = userData?.completedLevels?.[level.id]?.completed;
-      
-      let coinsGained = 0;
-      let hintsGained = 0;
-      let message = '';
+    const isAlreadyCompleted = userData?.completedLevels?.[level.id]?.completed;
+    
+    let coinsGained = 0;
+    let hintsGained = 0;
+    let message = '';
 
-      if (isAlreadyCompleted) {
-        // 重玩舊關卡
-        coinsGained = 100;
-        message = `🎉 挑戰舊關卡成功！獲得 100 金幣 🪙！`;
-      } else {
-        // 首次挑戰新關卡
-        coinsGained = 200;
-        hintsGained = 1;
-        message = `🎉 恭喜通關全新關卡！獲得 200 金幣 🪙 與 1 個免費提示 💡！`;
-      }
+    if (isAlreadyCompleted) {
+      // 重玩舊關卡
+      coinsGained = 100;
+      message = `🎉 挑戰舊關卡成功！獲得 100 金幣 🪙！`;
+    } else {
+      // 首次挑戰新關卡
+      coinsGained = 200;
+      hintsGained = 1;
+      message = `🎉 恭喜通關全新關卡！獲得 200 金幣 🪙 與 1 個免費提示 💡！`;
+    }
 
-      const updatedCoins = (userData.coins || 0) + coinsGained;
-      const updatedHints = (userData.hints || 0) + hintsGained;
-      
-      const completedLevels = { ...(userData.completedLevels || {}) };
-      completedLevels[level.id] = {
-        completed: true,
-        hintsUsedThisRun: freeHintsUsed, // 我們能追蹤本局用了幾次提示
-        bestTime: userData?.completedLevels?.[level.id]?.bestTime 
-          ? Math.min(userData.completedLevels[level.id].bestTime, timer) 
-          : timer,
-        completedAt: new Date().toISOString()
-      };
+    const updatedCoins = (userData.coins || 0) + coinsGained;
+    const updatedHints = (userData.hints || 0) + hintsGained;
+    
+    const completedLevels = { ...(userData.completedLevels || {}) };
+    completedLevels[level.id] = {
+      completed: true,
+      hintsUsedThisRun: freeHintsUsed,
+      bestTime: userData?.completedLevels?.[level.id]?.bestTime 
+        ? Math.min(userData.completedLevels[level.id].bestTime, timer) 
+        : timer,
+      completedAt: new Date().toISOString()
+    };
 
-      const userRef = doc(activeDb, 'users', user.uid);
-      await updateDoc(userRef, {
+    // 🌟 1. 立即進行本地樂觀更新（金幣增加、通關解鎖記錄寫入 state）
+    if (onUpdateUserDataLocal) {
+      onUpdateUserDataLocal({
         coins: updatedCoins,
         hints: updatedHints,
         completedLevels
       });
+    }
 
-      alert(message);
-      onRefreshUserData();
+    // 🌟 2. 立即彈出通關成功提示！
+    alert(message);
+
+    // 🌟 3. 在背景默默寫入雲端。如果寫入失敗，不卡死流程，也已在本地保留了存檔與解鎖效果！
+    try {
+      if (user) {
+        const userRef = doc(activeDb, 'users', user.uid);
+        await updateDoc(userRef, {
+          coins: updatedCoins,
+          hints: updatedHints,
+          completedLevels
+        });
+        if (onRefreshUserData) onRefreshUserData();
+      }
     } catch (e) {
-      console.error('更新使用者獎勵失敗:', e);
+      console.warn('雲端更新使用者獎勵失敗 (可能未啟用 Firestore)，已套用本地更新效果。', e);
     }
   };
 

@@ -90,9 +90,13 @@ export default function App() {
     }
   };
 
-  // 本地樂觀更新頭像，提升即時反應體驗
-  const handleUpdateAvatarLocal = (newAvatar) => {
-    setUserData(prev => prev ? { ...prev, avatar: newAvatar } : { avatar: newAvatar });
+  // 本地樂觀更新玩家資料，提升即時反應與離線體驗 (支援更新物件或單一頭像字串)
+  const handleUpdateUserDataLocal = (updatesOrAvatar) => {
+    if (typeof updatesOrAvatar === 'string') {
+      setUserData(prev => prev ? { ...prev, avatar: updatesOrAvatar } : { avatar: updatesOrAvatar });
+    } else {
+      setUserData(prev => prev ? { ...prev, ...updatesOrAvatar } : updatesOrAvatar);
+    }
   };
 
   const handleSelectLevel = (level) => {
@@ -113,7 +117,7 @@ export default function App() {
         setCurrentPage={setCurrentPage}
         currentPage={currentPage}
         onRefreshUserData={handleRefreshUserData}
-        onUpdateAvatarLocal={handleUpdateAvatarLocal}
+        onUpdateAvatarLocal={handleUpdateUserDataLocal}
       />
 
       {/* 主畫面切換 */}
@@ -141,6 +145,7 @@ export default function App() {
             level={selectedLevel}
             onBack={() => setCurrentPage('lobby')}
             onRefreshUserData={handleRefreshUserData}
+            onUpdateUserDataLocal={handleUpdateUserDataLocal}
           />
         )}
         
