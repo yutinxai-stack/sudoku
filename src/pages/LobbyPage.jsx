@@ -173,14 +173,38 @@ export default function LobbyPage({
           <div className="levels-grid">
             {filteredLevels.map((level) => {
               const isCompleted = userData?.completedLevels?.[level.id]?.completed;
+              const isAdmin = userData?.isAdmin;
+              
+              // 檢查解鎖：第一關或管理員自動解鎖，其餘關卡需上一關已通關
+              let isUnlocked = level.number === 1 || isAdmin;
+              if (!isUnlocked && level.number > 1) {
+                const prevLevelId = `level_${level.difficulty}_${level.number - 1}`;
+                isUnlocked = !!userData?.completedLevels?.[prevLevelId]?.completed;
+              }
+
+              const handleSelect = () => {
+                if (!isUnlocked) {
+                  alert(`🔒 這是鎖定關卡！請先挑戰並完成第 ${level.number - 1} 關，即可解鎖第 ${level.number} 關！`);
+                  return;
+                }
+                onSelectLevel(level);
+              };
+
               return (
                 <div 
                   key={level.id}
-                  className={`level-card ${isCompleted ? 'completed' : ''}`}
-                  onClick={() => onSelectLevel(level)}
-                  style={{ paddingBottom: '1.2rem' }}
+                  className={`level-card ${isCompleted ? 'completed' : ''} ${!isUnlocked ? 'locked' : ''}`}
+                  onClick={handleSelect}
+                  style={{ 
+                    paddingBottom: '1.2rem',
+                    opacity: isUnlocked ? 1 : 0.65,
+                    cursor: isUnlocked ? 'pointer' : 'not-allowed',
+                    backgroundColor: isUnlocked ? 'var(--bg-card)' : 'var(--bg-main)',
+                    border: isUnlocked ? '3px solid var(--border)' : '3px dashed var(--border)'
+                  }}
                 >
-                  <div style={{ fontWeight: 'bold', fontSize: '1.3rem' }}>
+                  <div style={{ fontWeight: 'bold', fontSize: '1.3rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.3rem' }}>
+                    {!isUnlocked && <span>🔒</span>}
                     第 {level.number} 關
                   </div>
                   <div className={`level-badge badge-${level.difficulty}`}>
@@ -191,6 +215,11 @@ export default function LobbyPage({
                       ✅ 已通關<br/>
                       <span style={{ fontSize: '0.9rem', color: '#059669' }}>(挑戰可得 100 🪙)</span>
                     </div>
+                  ) : !isUnlocked ? (
+                    <div style={{ color: 'var(--text-muted)', fontWeight: 'bold', marginTop: '0.5rem', fontSize: '1.1rem', marginBottom: '0.5rem' }}>
+                      🔒 尚未解鎖<br/>
+                      <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>請先挑戰前一關</span>
+                    </div>
                   ) : (
                     <div style={{ color: 'var(--text-muted)', fontWeight: 'bold', marginTop: '0.5rem', fontSize: '1.1rem', marginBottom: '0.5rem' }}>
                       未挑戰<br/>
@@ -199,22 +228,22 @@ export default function LobbyPage({
                   )}
                   {/* 新增顯眼的大按鈕，提示長者點擊此處進入關卡 */}
                   <button 
-                    className="btn btn-primary" 
+                    className={`btn ${isUnlocked ? 'btn-primary' : 'btn-secondary'}`}
                     style={{ 
                       width: '100%', 
                       fontSize: '1.1rem', 
                       padding: '0.4rem 0', 
                       minHeight: '2.8rem',
                       marginTop: '0.5rem',
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                      cursor: isUnlocked ? 'pointer' : 'not-allowed'
                     }}
                     onClick={(e) => {
-                      // 阻止事件冒泡，因為外層 div 也有 onClick
-                      e.stopPropagation();
-                      onSelectLevel(level);
+                      e.stopPropagation(); // 阻止事件冒泡
+                      handleSelect();
                     }}
                   >
-                    {isCompleted ? '👉 重新挑戰' : '👉 開始挑戰'}
+                    {!isUnlocked ? '🔒 鎖定中' : isCompleted ? '👉 重新挑戰' : '👉 開始挑戰'}
                   </button>
                 </div>
               );
