@@ -15,9 +15,8 @@ export default function LobbyPage({
   const [leaderboard, setLeaderboard] = useState([]);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
 
-  // 載入關卡 (附帶 5 秒超時防卡死機制)
+  // 載入關卡 (直接從本地靜態 data.txt 載入，速度極快且不需資料庫權限)
   useEffect(() => {
-    let timeoutId;
     let isActive = true;
 
     async function fetchLevels() {
@@ -25,88 +24,13 @@ export default function LobbyPage({
         setLoading(true);
         setLoadError(null);
 
-        // 建立 5 秒超時 Promise
-        const timeoutPromise = new Promise((_, reject) => {
-          timeoutId = setTimeout(() => {
-            reject(new Error('TIMEOUT'));
-          }, 5000);
-        });
-
-        // 讀取資料庫 Promise
-        const dbPromise = getDocs(collection(activeDb, 'levels'));
-
-        // 進行競爭，若 5 秒內資料庫沒回應（通常是因為 API 未啟用），直接拋出超時
-        let querySnapshot = await Promise.race([dbPromise, timeoutPromise]);
-        clearTimeout(timeoutId);
+        const res = await fetch('/data/data.txt');
+        if (!res.ok) {
+          throw new Error('無法取得靜態關卡資料');
+        }
+        const loadedLevels = await res.json();
 
         if (!isActive) return;
-
-        let loadedLevels = [];
-        querySnapshot.forEach((doc) => {
-          loadedLevels.push({ id: doc.id, ...doc.data() });
-        });
-
-        // 💡 Auto Seeding 機制：如果發現缺少任何一個難度的第一關，則將對應的預設關卡補入資料庫
-        const hasEasy1 = loadedLevels.some(l => l.difficulty === 'easy' && l.number === 1);
-        const hasMedium1 = loadedLevels.some(l => l.difficulty === 'medium' && l.number === 1);
-        const hasHard1 = loadedLevels.some(l => l.difficulty === 'hard' && l.number === 1);
-        const hasExpert1 = loadedLevels.some(l => l.difficulty === 'expert' && l.number === 1);
-
-        if (!hasEasy1 || !hasMedium1 || !hasHard1 || !hasExpert1) {
-          const defaultSeedLevels = [];
-          if (!hasEasy1) {
-            defaultSeedLevels.push({
-              id: 'level_1',
-              number: 1,
-              difficulty: 'easy',
-              board: '530070000600195000098000060800060003400803001700020006060000280000419005000080079',
-              solution: '534678912672195348198342567859761423426853791713924856961537284287419635345286179',
-              createdAt: new Date().toISOString()
-            });
-          }
-          if (!hasMedium1) {
-            defaultSeedLevels.push({
-              id: 'level_2',
-              number: 1, // 起始為第一關
-              difficulty: 'medium',
-              board: '000260701680070090190004500820100040004602900050003028009300074040050036703018000',
-              solution: '435269781682571394197834562826195743374682915951743628219356874548917236763428591',
-              createdAt: new Date().toISOString()
-            });
-          }
-          if (!hasHard1) {
-            defaultSeedLevels.push({
-              id: 'level_3',
-              number: 1, // 起始為第一關
-              difficulty: 'hard',
-              board: '000000000000003085001020000000507000004000100090000000500009070700400005000000094',
-              solution: '935618247247963185861724539158537962374296158692841573513879426789421365426357891',
-              createdAt: new Date().toISOString()
-            });
-          }
-          if (!hasExpert1) {
-            defaultSeedLevels.push({
-              id: 'level_4',
-              number: 1, // 起始為第一關
-              difficulty: 'expert',
-              board: '800000000003600000070090200050007000000045700000100030001000068008500010090000400',
-              solution: '812753649943682175675491283154237896369845721287169534521974368438526917796318452',
-              createdAt: new Date().toISOString()
-            });
-          }
-
-          // 逐一寫入資料庫 (Firestore 或 LocalStorage)
-          for (const lvl of defaultSeedLevels) {
-            await setDoc(doc(activeDb, 'levels', lvl.id), lvl);
-          }
-
-          // 重新抓取
-          querySnapshot = await getDocs(collection(activeDb, 'levels'));
-          loadedLevels = [];
-          querySnapshot.forEach((doc) => {
-            loadedLevels.push({ id: doc.id, ...doc.data() });
-          });
-        }
 
         // 依關卡序號排序
         loadedLevels.sort((a, b) => a.number - b.number);
@@ -114,11 +38,7 @@ export default function LobbyPage({
       } catch (err) {
         if (!isActive) return;
         console.error('載入關卡錯誤:', err);
-        if (err.message === 'TIMEOUT' || err.code === 'permission-denied') {
-          setLoadError('database-not-active');
-        } else {
-          setLoadError(err.message || '連線錯誤');
-        }
+        setLoadError(err.message || '連線錯誤');
       } finally {
         if (isActive) {
           setLoading(false);
@@ -129,7 +49,6 @@ export default function LobbyPage({
 
     return () => {
       isActive = false;
-      clearTimeout(timeoutId);
     };
   }, []);
 
