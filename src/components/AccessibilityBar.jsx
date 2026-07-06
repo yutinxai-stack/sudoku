@@ -112,7 +112,7 @@ export default function AccessibilityBar({
               {userData?.avatar || '👴'}
             </span>
             <span style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>
-              歡迎, {userData?.email?.split('@')[0] || user.email}
+              歡迎, {(userData?.email || user?.email || '').split('@')[0]}
             </span>
 
             {/* 浮動的頭像選擇器氣泡 */}

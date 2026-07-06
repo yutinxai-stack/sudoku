@@ -10,16 +10,37 @@ export default function LobbyPage({
 }) {
   const [levels, setLevels] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null); // 雲端連線錯誤狀態
   const [activeTab, setActiveTab] = useState('easy'); // easy, medium, hard, expert
   const [leaderboard, setLeaderboard] = useState([]);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
 
-  // 載入關卡
+  // 載入關卡 (附帶 5 秒超時防卡死機制)
   useEffect(() => {
+    let timeoutId;
+    let isActive = true;
+
     async function fetchLevels() {
       try {
         setLoading(true);
-        let querySnapshot = await getDocs(collection(activeDb, 'levels'));
+        setLoadError(null);
+
+        // 建立 5 秒超時 Promise
+        const timeoutPromise = new Promise((_, reject) => {
+          timeoutId = setTimeout(() => {
+            reject(new Error('TIMEOUT'));
+          }, 5000);
+        });
+
+        // 讀取資料庫 Promise
+        const dbPromise = getDocs(collection(activeDb, 'levels'));
+
+        // 進行競爭，若 5 秒內資料庫沒回應（通常是因為 API 未啟用），直接拋出超時
+        let querySnapshot = await Promise.race([dbPromise, timeoutPromise]);
+        clearTimeout(timeoutId);
+
+        if (!isActive) return;
+
         let loadedLevels = [];
         querySnapshot.forEach((doc) => {
           loadedLevels.push({ id: doc.id, ...doc.data() });
@@ -91,12 +112,25 @@ export default function LobbyPage({
         loadedLevels.sort((a, b) => a.number - b.number);
         setLevels(loadedLevels);
       } catch (err) {
+        if (!isActive) return;
         console.error('載入關卡錯誤:', err);
+        if (err.message === 'TIMEOUT' || err.code === 'permission-denied') {
+          setLoadError('database-not-active');
+        } else {
+          setLoadError(err.message || '連線錯誤');
+        }
       } finally {
-        setLoading(false);
+        if (isActive) {
+          setLoading(false);
+        }
       }
     }
     fetchLevels();
+
+    return () => {
+      isActive = false;
+      clearTimeout(timeoutId);
+    };
   }, []);
 
   // 載入排行榜
@@ -179,6 +213,33 @@ export default function LobbyPage({
         {loading ? (
           <div style={{ textAlign: 'center', fontSize: '1.4rem', padding: '2rem' }}>
             載入關卡中，請稍候...
+          </div>
+        ) : loadError ? (
+          <div style={{ 
+            textAlign: 'center', 
+            padding: '2.5rem 1.5rem', 
+            border: '3px dashed #f87171', 
+            borderRadius: '1.25rem', 
+            backgroundColor: 'var(--bg-main)', 
+            color: 'var(--text-main)',
+            margin: '1.5rem 0'
+          }}>
+            <h3 style={{ fontSize: '2rem', marginBottom: '1rem', color: '#ef4444' }}>⚠️ 雲端資料庫連線失敗</h3>
+            <div style={{ fontSize: '1.25rem', marginBottom: '2rem', lineHeight: '1.8', textAlign: 'left', maxWidth: '560px', margin: '0 auto 2rem auto' }}>
+              這通常是因為您剛建立的 Firebase 專案尚未手動啟用雲端服務。<br />
+              請用電腦點擊下方連結，登入您的 Google 帳號啟用它們：<br /><br />
+              🔹 <strong><a href="https://console.firebase.google.com/project/sudoku-elderly-hsian/firestore" target="_blank" rel="noreferrer" style={{ textDecoration: 'underline', color: 'var(--primary)' }}>啟用步驟 1：建立雲端資料庫 (點此前往)</a></strong><br />
+              <span style={{ fontSize: '1.1rem', color: 'var(--text-muted)' }}>進去後點選「建立資料庫」➜ 選擇「測試模式」啟用。</span><br /><br />
+              🔹 <strong><a href="https://console.firebase.google.com/project/sudoku-elderly-hsian/authentication" target="_blank" rel="noreferrer" style={{ textDecoration: 'underline', color: 'var(--primary)' }}>啟用步驟 2：開啟登入方式 (點此前往)</a></strong><br />
+              <span style={{ fontSize: '1.1rem', color: 'var(--text-muted)' }}>進去後點選「開始使用」➜ 選擇「電子郵件/密碼」並啟用。</span>
+            </div>
+            <button 
+              className="btn btn-primary" 
+              onClick={() => window.location.reload()}
+              style={{ fontSize: '1.4rem', padding: '1rem 2.5rem', minHeight: '3.5rem' }}
+            >
+              🔄 已啟用，重新整理網頁並連線
+            </button>
           </div>
         ) : filteredLevels.length === 0 ? (
           <div style={{ textAlign: 'center', fontSize: '1.3rem', padding: '3rem', color: 'var(--text-muted)' }}>
