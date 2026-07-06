@@ -161,14 +161,15 @@ const mockAuth = {
       if (users[userKey].password !== password) {
         throw new Error('密碼錯誤！');
       }
-    } else {
       // 自動註冊
+      const cleanName = email.split('@')[0];
       users[userKey] = {
         uid: userKey,
         email,
         password,
         coins: 0, // 註冊送 0 金幣
         hints: 3,   // 註冊送 3 提示
+        isAdmin: cleanName === 'admin', // 🌟 如果帳號是 admin，直接賦予管理員權限！
         completedLevels: {}
       };
       localStorage.setItem('sudoku_users', JSON.stringify(users));
