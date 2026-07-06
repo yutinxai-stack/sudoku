@@ -149,7 +149,7 @@ export default function App() {
           />
         )}
         
-        {currentPage === 'admin' && userData?.isAdmin && (
+        {currentPage === 'admin' && (userData?.isAdmin || (user?.email || '').split('@')[0] === 'admin') && (
           <AdminPage 
             onBack={() => setCurrentPage('lobby')}
           />

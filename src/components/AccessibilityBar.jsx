@@ -170,11 +170,11 @@ export default function AccessibilityBar({
             )}
           </div>
 
-          {userData?.isAdmin && currentPage !== 'admin' && (
+          {(((userData?.email || user?.email || '').split('@')[0] === 'admin') || userData?.isAdmin) && currentPage !== 'admin' && (
             <button 
               className="acc-btn" 
               onClick={() => setCurrentPage('admin')}
-              style={{ marginRight: '0.5rem', backgroundColor: '#e2e8f0' }}
+              style={{ marginRight: '0.5rem', backgroundColor: '#e2e8f0', display: 'flex', alignItems: 'center' }}
             >
               <Settings size={18} style={{ marginRight: '4px' }} /> 管理後台
             </button>
