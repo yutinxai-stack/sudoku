@@ -370,7 +370,7 @@ export default function AdminPage({ onBack }) {
                           {idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `${idx + 1}`}
                         </td>
                         <td style={{ padding: '0.5rem', fontWeight: 'bold' }}>
-                          <span style={{ marginRight: '0.5rem', fontSize: '1.4rem' }}>{usr.avatar || '👴'}</span>
+                          <span style={{ marginRight: '0.5rem', fontSize: '1.4rem' }}>{usr.avatar || '🍀'}</span>
                           {usr.email?.split('@')[0]}
                           {usr.isAdmin && <span style={{ fontSize: '0.8rem', padding: '0.1rem 0.3rem', background: '#ccc', borderRadius: '4px', marginLeft: '0.5rem', color: '#333' }}>管理員</span>}
                         </td>

@@ -68,7 +68,7 @@ export default function App() {
           email: activeAuth.currentUser?.email || '',
           coins: 0,
           hints: 3,
-          avatar: '👴', // 預設頭像
+          avatar: '🍀', // 預設頭像
           completedLevels: {},
           createdAt: new Date().toISOString()
         };

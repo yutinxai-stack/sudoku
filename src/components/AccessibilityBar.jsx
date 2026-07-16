@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Type, Eye, LogOut, Settings } from 'lucide-react';
 import { signOut, activeAuth, activeDb, doc, updateDoc } from '../firebase';
 
-const pickerAvatars = ['🐱', '🐶', '🐼', '🦉', '🐰', '🦊', '👴', '👵'];
+const pickerAvatars = ['🍀', '🐱', '🐶', '🐼', '🦉', '🐰', '🦊', '👴', '👵'];
 
 export default function AccessibilityBar({ 
   fontScale, 
@@ -97,7 +97,7 @@ export default function AccessibilityBar({
             title="點擊更換頭像"
           >
             <span style={{ fontSize: '1.8rem', lineHeight: 1 }}>
-              {userData?.avatar || '👴'}
+              {userData?.avatar || '🍀'}
             </span>
             <span style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>
               歡迎, {(userData?.email || user?.email || '').split('@')[0]}

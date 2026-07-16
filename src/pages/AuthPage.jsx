@@ -3,6 +3,7 @@ import { activeAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword,
 import { KeyRound, User, UserPlus, LogIn } from 'lucide-react';
 
 const avatars = [
+  { char: '🍀', name: '幸運草' },
   { char: '🐱', name: '貓咪' },
   { char: '🐶', name: '狗狗' },
   { char: '🐼', name: '熊貓' },
@@ -16,7 +17,7 @@ const avatars = [
 export default function AuthPage({ isMock, setCurrentPage }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [selectedAvatar, setSelectedAvatar] = useState('🐱');
+  const [selectedAvatar, setSelectedAvatar] = useState('🍀');
   const [isRegister, setIsRegister] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -73,7 +74,7 @@ export default function AuthPage({ isMock, setCurrentPage }) {
     <div className="container" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '80vh' }}>
       <div className="card auth-form" style={{ width: '100%' }}>
         <h2 style={{ fontSize: '2rem', textAlign: 'center', marginBottom: '1.5rem' }}>
-          {isRegister ? '👵 註冊新帳號' : '👴 數獨登入'}
+          {isRegister ? '🍀 註冊新帳號' : '🍀 數獨登入'}
         </h2>
         
         {isMock && (
