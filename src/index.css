@@ -2,32 +2,57 @@
   /* 字體縮放變數 */
   --font-scale: 1.0;
   
-  /* 預設明亮主題 (大氣、圓潤、清爽) */
-  --bg-main: #f0f4f8;
-  --bg-card: #ffffff;
-  --text-main: #1e293b;
-  --text-muted: #64748b;
-  --primary: #2563eb;
-  --primary-hover: #1d4ed8;
-  --accent: #f59e0b; /* 金幣黃 */
-  --border: #cbd5e1;
-  --grid-line: #94a3b8;
-  --grid-line-bold: #1e293b;
+  /* 護眼淡綠色主題 (清新、護眼、高對比度、防疲勞) */
+  --bg-main: #f0fdf4;       /* 溫和淡護眼綠底 */
+  --bg-card: #ffffff;       /* 白色卡片背景 */
+  --text-main: #14532d;     /* 深森林綠，對比極佳且不刺眼 */
+  --text-muted: #166534;    /* 略淡的綠字 */
+  --primary: #16a34a;       /* 亮綠主色調 */
+  --primary-hover: #15803d; /* 懸停深綠 */
+  --accent: #d97706;        /* 金幣黃 */
+  --border: #bbf7d0;        /* 邊框淡粉綠 */
+  --grid-line: #86efac;     /* 細網格綠線 */
+  --grid-line-bold: #166534;/* 粗網格深綠線 */
   
-  /* 標準 HUD 文字色彩 */
-  --text-coins: #d97706;   /* 金幣深橘黃 */
-  --text-hints: #2563eb;   /* 提示藍 */
-  --text-success: #10b981; /* 成功綠 */
+  /* 護眼 HUD 文字色彩 */
+  --text-coins: #b45309;   /* 深橘黃 */
+  --text-hints: #15803d;   /* 深綠 */
+  --text-success: #16a34a; /* 亮綠 */
   
   /* 數獨格子狀態 */
   --cell-bg: #ffffff;
-  --cell-selected: #dbeafe;
-  --cell-related: #eff6ff;
+  --cell-selected: #bbf7d0; /* 選中格淡綠高亮 */
+  --cell-related: #dcfce7;  /* 相關格極淡綠高亮 */
+  --cell-error: #fee2e2;    /* 錯誤格淡紅 */
+  --cell-error-text: #dc2626;/* 錯誤字深紅 */
+  --cell-fixed: #f0fdf4;    /* 題目固定格極淡綠 */
+  --cell-fixed-text: #14532d;/* 題目字深綠 */
+  --cell-user-text: #15803d; /* 填入字綠色 */
+}
+
+/* 預設主題對齊 :root */
+.theme-default {
+  --bg-main: #f0fdf4;
+  --bg-card: #ffffff;
+  --text-main: #14532d;
+  --text-muted: #166534;
+  --primary: #16a34a;
+  --primary-hover: #15803d;
+  --accent: #d97706;
+  --border: #bbf7d0;
+  --grid-line: #86efac;
+  --grid-line-bold: #166534;
+  --text-coins: #b45309;
+  --text-hints: #15803d;
+  --text-success: #16a34a;
+  --cell-bg: #ffffff;
+  --cell-selected: #bbf7d0;
+  --cell-related: #dcfce7;
   --cell-error: #fee2e2;
   --cell-error-text: #dc2626;
-  --cell-fixed: #f1f5f9;
-  --cell-fixed-text: #0f172a;
-  --cell-user-text: #2563eb;
+  --cell-fixed: #f0fdf4;
+  --cell-fixed-text: #14532d;
+  --cell-user-text: #15803d;
 }
 
 /* 高對比黑白黃主題 */

@@ -75,27 +75,7 @@ export default function AccessibilityBar({
         </button>
       </div>
 
-      <div className="acc-group">
-        <span className="acc-label"><Eye size={20} style={{ marginRight: '4px' }} /> 色彩配色:</span>
-        <button 
-          className={`acc-btn ${theme === 'default' ? 'active' : ''}`} 
-          onClick={() => setTheme('default')}
-        >
-          預設
-        </button>
-        <button 
-          className={`acc-btn ${theme === 'high-contrast' ? 'active' : ''}`} 
-          onClick={() => setTheme('high-contrast')}
-        >
-          高對比(黑黃)
-        </button>
-        <button 
-          className={`acc-btn ${theme === 'eye-care' ? 'active' : ''}`} 
-          onClick={() => setTheme('eye-care')}
-        >
-          護眼(暖黃)
-        </button>
-      </div>
+
 
       {user && (
         <div className="acc-group" style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center' }}>

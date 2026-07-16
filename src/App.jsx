@@ -24,19 +24,17 @@ export default function App() {
   const [fontScale, setFontScale] = useState(() => {
     return parseFloat(localStorage.getItem('sudoku_font_scale')) || 1.2; // 預設 1.2 倍大字體
   });
-  const [theme, setTheme] = useState(() => {
-    return localStorage.getItem('sudoku_theme') || 'eye-care';
-  });
+  const [theme, setTheme] = useState('default');
 
-  // 監聽字體與主題變化，並儲存與套用
+  // 監聽字體變化，並儲存與套用
   useEffect(() => {
     localStorage.setItem('sudoku_font_scale', fontScale);
     document.documentElement.style.setProperty('--font-scale', fontScale);
   }, [fontScale]);
 
   useEffect(() => {
-    localStorage.setItem('sudoku_theme', theme);
-  }, [theme]);
+    localStorage.setItem('sudoku_theme', 'default');
+  }, []);
 
   // 監聽 Auth 狀態
   useEffect(() => {
