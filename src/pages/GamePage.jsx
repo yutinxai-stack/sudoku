@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Type, Eye, Lightbulb, Coins, ArrowLeft, RotateCcw, CheckCircle, HelpCircle } from 'lucide-react';
+import { Type, Eye, Lightbulb, Coins, ArrowLeft, RotateCcw, CheckCircle, HelpCircle, Pencil } from 'lucide-react';
 import { activeDb, doc, updateDoc } from '../firebase';
 import { stringToGrid, gridToString, isValid } from '../utils/sudokuSolver';
 
@@ -20,6 +20,10 @@ export default function GamePage({
   const [timer, setTimer] = useState(0);
   const [gameActive, setGameActive] = useState(true);
 
+  // 新增筆記狀態與筆記模式開關
+  const [notes, setNotes] = useState(Array(81).fill(null).map(() => []));
+  const [noteMode, setNoteMode] = useState(false);
+
   // 初始化關卡
   useEffect(() => {
     if (level && level.board) {
@@ -32,6 +36,10 @@ export default function GamePage({
       setTimer(0);
       setGameActive(true);
       calculateErrors(initArr);
+      
+      // 重置筆記狀態
+      setNotes(Array(81).fill(null).map(() => []));
+      setNoteMode(false);
     }
   }, [level]);
 
@@ -109,13 +117,63 @@ export default function GamePage({
     if (selectedCell === null || gameCompleted) return;
     if (initialBoard[selectedCell] !== 0) return; // 初始格子不能修改
 
-    const newBoard = [...board];
-    newBoard[selectedCell] = num;
-    setBoard(newBoard);
-    calculateErrors(newBoard);
+    if (noteMode) {
+      // 📝 筆記模式下：新增、切換筆記輔助數字
+      if (num === 0) {
+        // 清除本格的所有筆記
+        const newNotes = [...notes];
+        newNotes[selectedCell] = [];
+        setNotes(newNotes);
+      } else {
+        const newNotes = [...notes];
+        const currentCellNotes = [...(newNotes[selectedCell] || [])];
+        const idx = currentCellNotes.indexOf(num);
+        if (idx > -1) {
+          currentCellNotes.splice(idx, 1); // 存在則移除
+        } else {
+          currentCellNotes.push(num); // 不存在則加入
+          currentCellNotes.sort((a, b) => a - b); // 升序排列
+        }
+        newNotes[selectedCell] = currentCellNotes;
+        setNotes(newNotes);
 
-    // 檢查是否通關
-    checkCompletion(newBoard);
+        // 填寫筆記時，若本格原先有大數字，則自動清除大數字
+        if (board[selectedCell] !== 0) {
+          const newBoard = [...board];
+          newBoard[selectedCell] = 0;
+          setBoard(newBoard);
+          calculateErrors(newBoard);
+        }
+      }
+    } else {
+      // 🔢 普通模式下：填入大數字
+      if (num === 0) {
+        // C 鍵清除邏輯：優先清除大數字；若無大數字，則清除所有筆記輔助數字
+        if (board[selectedCell] !== 0) {
+          const newBoard = [...board];
+          newBoard[selectedCell] = 0;
+          setBoard(newBoard);
+          calculateErrors(newBoard);
+        } else {
+          const newNotes = [...notes];
+          newNotes[selectedCell] = [];
+          setNotes(newNotes);
+        }
+      } else {
+        const newBoard = [...board];
+        newBoard[selectedCell] = num;
+        setBoard(newBoard);
+        calculateErrors(newBoard);
+
+        // 填入大數字後，自動清空本格原本的所有筆記
+        const newNotes = [...notes];
+        newNotes[selectedCell] = [];
+        setNotes(newNotes);
+
+        // 檢查是否通關
+        checkCompletion(newBoard);
+      }
+    }
   };
 
   // 檢查是否完全通關
@@ -287,14 +345,16 @@ export default function GamePage({
     }
   };
 
-  // 重玩關卡 (清除非題目格子)
+  // 重玩關卡 (清除非題目格子與筆記)
   const handleReset = () => {
-    if (window.confirm('確定要清除所有填寫的數字，重新開始這一關嗎？')) {
+    if (window.confirm('確定要清除所有填寫的數字與筆記，重新開始這一關嗎？')) {
       setBoard([...initialBoard]);
       setFreeHintsUsed(0);
       setGameCompleted(false);
       setTimer(0);
       calculateErrors(initialBoard);
+      setNotes(Array(81).fill(null).map(() => []));
+      setNoteMode(false);
     }
   };
 
@@ -363,8 +423,29 @@ export default function GamePage({
                       sudoku-cell-row-${rowIdx}
                     `}
                     onClick={() => handleCellClick(idx)}
+                    style={{ position: 'relative' }}
                   >
-                    {cellValue !== 0 ? cellValue : ''}
+                    {cellValue !== 0 ? (
+                      cellValue
+                    ) : (
+                      notes[idx] && notes[idx].length > 0 && (
+                        <div 
+                          style={{ 
+                            position: 'absolute', 
+                            top: '2px', 
+                            right: '4px', 
+                            fontSize: '0.75rem', 
+                            lineHeight: 1, 
+                            color: 'var(--text-muted)',
+                            fontWeight: 'bold',
+                            letterSpacing: '0.5px'
+                          }}
+                          className="cell-notes"
+                        >
+                          {notes[idx].join('')}
+                        </div>
+                      )
+                    )}
                   </button>
                 );
               })}
@@ -387,9 +468,19 @@ export default function GamePage({
               <button 
                 className="key-btn clear-btn" 
                 onClick={() => handleInputNumber(0)}
-                title="清除所選格子內的數字"
+                title="清除所選格子內的數字或筆記"
               >
                 C
+              </button>
+              {/* 筆記鍵 ✏️ */}
+              <button 
+                className={`key-btn note-btn ${noteMode ? 'active' : ''}`} 
+                onClick={() => setNoteMode(!noteMode)}
+                title="切換筆記標記模式"
+                style={{ minHeight: '3.2rem', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}
+              >
+                <Pencil size={18} />
+                <span style={{ fontSize: '0.75rem', marginTop: '2px', fontWeight: 'bold' }}>筆記:{noteMode ? '開' : '關'}</span>
               </button>
               {/* 提示鍵 Hint */}
               <button 
@@ -398,7 +489,7 @@ export default function GamePage({
                 title="取得提示，填入目前選中格子的答案"
                 style={{ minHeight: '3.2rem' }}
               >
-                <Lightbulb size={24} style={{ verticalAlign: 'middle', marginRight: '4px' }} /> 提示
+                <Lightbulb size={18} style={{ verticalAlign: 'middle', marginRight: '2px' }} /> 提示
               </button>
             </div>
           </div>

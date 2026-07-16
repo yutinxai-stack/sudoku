@@ -338,7 +338,7 @@ body {
 
 .key-btn.hint-btn {
   font-size: 1.3rem;
-  grid-column: span 2;
+  grid-column: span 1;
   background-color: #fef3c7;
   color: #d97706;
   border-color: #fcd34d;
@@ -347,6 +347,29 @@ body {
   background-color: #332200;
   color: #ffff00;
   border-color: #ffffff;
+}
+
+.key-btn.note-btn {
+  font-size: 1.1rem;
+  grid-column: span 1;
+  background-color: #e0f2fe;
+  color: #0369a1;
+  border-color: #bae6fd;
+}
+.key-btn.note-btn.active {
+  background-color: #0284c7 !important;
+  color: #ffffff !important;
+  border-color: #0369a1 !important;
+}
+.theme-high-contrast .key-btn.note-btn {
+  background-color: #000000;
+  color: #ffff00;
+  border-color: #ffffff;
+}
+.theme-high-contrast .key-btn.note-btn.active {
+  background-color: #ffff00 !important;
+  color: #000000 !important;
+  border-color: #ffffff !important;
 }
 
 /* 登入註冊框 */
